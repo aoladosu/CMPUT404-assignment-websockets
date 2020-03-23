@@ -43,18 +43,34 @@ function debug(str) {
 debug("Test");
 
 world = {};
+rainbowIndex = 0;
+rainbow = ['#ff0000', '#ff4000', '#ff8000', '#ffbf00', '#ffff00','#bfff00', '#80ff00', '#40ff00', '#00ff00', '#00ff40', '#00ff80', '#00ffbf', '#00ffff', '#00bfff', '#0080ff', '#0040ff', '#0000ff', '#4000ff', '#8000ff', '#bf00ff', '#ff00ff', '#ff00bf', '#ff0080', '#ff0040', '#ff0000'];
 
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
-        beginPath();                
+        beginPath();              
         lineWidth = 3;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        //arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+
+        var eyer = 2;
+        var headr = 25;
+        var mouthr = 12;
+        var eyepos = 10;
+
+        arc(x, y, headr, 0, Math.PI * 2, true); // Outer circle
+        moveTo(x+mouthr, y);
+        arc(x, y+2, mouthr, 0, Math.PI, false);  // Mouth (clockwise)
+        moveTo(x-eyepos+eyer, y-10);
+        arc(x-eyepos, y-10, eyer, 0, Math.PI * 2, true);  // Left eye
+        moveTo(x+eyepos+eyer, y-10);
+        arc(x+eyepos, y-10, eyer, 0, Math.PI * 2, true);  // Right eye
+
         stroke();                                
     }
 }
@@ -121,11 +137,14 @@ function getPosition(e) {
 	}
 }
 
+
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    socket.send('{"' + entity + '": ' + JSON.stringify(data) + '}');
 }
+
 var counter = 0;
 function addEntityWithoutName(data) {
     var name = "X"+(counter++)%100;
@@ -239,8 +258,9 @@ mouse.mouseuppers.push(function(x,y,clicked,e) {
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    var color = rainbow[rainbowIndex];
+    rainbowIndex = (rainbowIndex+1)%rainbow.length;
+    addEntityWithoutName({'x':x,'y':y,'colour':color,'radius':10});
 });
 
 
@@ -254,6 +274,7 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        socket.send('"world": "?"');
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -261,7 +282,14 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?
+            console.log(msg.data)
+            var update = JSON.parse(msg.data)   
+            for (var i in update){
+                world["X"+(counter++)%100] = update[i];
+            }
+            drawNextFrame();
+
         } catch (e) {
             alert("socket on message: " + e);
         }
