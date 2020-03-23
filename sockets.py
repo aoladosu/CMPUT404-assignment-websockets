@@ -27,7 +27,6 @@ import os
 app = Flask(__name__)
 sockets = Sockets(app)
 app.debug = True
-
 clients = list()
 
 class Client:
@@ -53,6 +52,7 @@ class World:
         self.clear()
         # we've got listeners now!
         self.listeners = list()
+        self.counter = 0
         
     def add_set_listener(self, listener):
         self.listeners.append( listener )
@@ -64,12 +64,14 @@ class World:
         self.update_listeners( entity )
 
     def set(self, entity, data):
-        self.space[entity] = data
-       # self.queue.append(entity)
+        self.space[self.counter] = data
+        print("#######################################3")
+        self.queue.append(self.counter)
+        self.counter += 1
 
-        #if (len(self.queue) >= 100):
-        #    entity = self.queue.pop(0)
-        #    self.space.pop(entity, [])
+        if (len(self.queue) >= 100):
+            key = self.queue.pop(0)
+            self.space.pop(key, [])
 
         self.update_listeners( entity )
 
@@ -80,6 +82,7 @@ class World:
 
     def clear(self):
         self.space = dict()
+        self.queue = []
 
     def get(self, entity):
         return self.space.get(entity,dict())
@@ -87,7 +90,7 @@ class World:
     def world(self):
         return self.space
 
-myWorld = World()        
+myWorld = World()      
 
 def set_listener( entity, data ):
     ''' do something with the update ! '''
